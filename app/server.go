@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net"
 	"os"
@@ -8,6 +9,13 @@ import (
 
 var _ = net.Listen
 var _ = os.Exit
+
+func apiVersionCheck(apiVersion int) bool {
+	if apiVersion >= 0 && apiVersion <= 4 {
+		return true
+	}
+	return false
+}
 
 func main() {
 
@@ -42,6 +50,15 @@ func main() {
 	resp := make([]byte, 8)
 	copy(resp[:4], []byte{0, 0, 0, 0})
 	copy(resp[4:], buffer[8:12])
+
+	apiVersion := binary.BigEndian.Uint16(buffer[6:8])
+	apiVersionValidation := apiVersionCheck(int(apiVersion))
+
+	if !apiVersionValidation {
+		resp = append(resp, 0, 35)
+	} else {
+		resp = append(resp, 0, 0)
+	}
 
 	if _, err := conn.Write(resp); err != nil {
 		fmt.Println("conn Write error: ", err.Error())
