@@ -20,6 +20,8 @@ func HandleRequest(conn net.Conn, buffer []byte) {
 					max_version -> Int_16 / 2 Byte
 	*/
 
+	fmt.Println(string(buffer))
+
 	leng := []byte{0, 0, 0, 19}   // 4 Bytes
 	correlationId := buffer[8:12] // 4 Bytes
 	var errorCode []byte          // 2 Bytes
