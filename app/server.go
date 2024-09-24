@@ -17,7 +17,7 @@ func main() {
 		如果 conn.Read() 讀太肥的東西, 會阻塞新的 conn
 	*/
 
-	l, err := net.Listen("tcp", "0.0.0.0:9092")
+	listener, err := net.Listen("tcp", "0.0.0.0:9092")
 	if err != nil {
 		fmt.Println("Failed to bind to port 9092")
 		os.Exit(1)
@@ -26,7 +26,7 @@ func main() {
 	}
 
 	for {
-		conn, err := l.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
@@ -34,5 +34,4 @@ func main() {
 
 		go HandleConnection(conn)
 	}
-
 }
