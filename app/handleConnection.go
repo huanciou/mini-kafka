@@ -6,27 +6,25 @@ import (
 )
 
 func HandleConnection(conn net.Conn) {
-
 	defer conn.Close()
 
-	/*
-		The request starts with a 4 byte length field:
-			header:
-				buffer[0:4] -> message length / 4 BYTE
-				buffer[4:6] -> request_api_key	INT16 / 2 BYTE
-				buffer[6:8] -> request_api_version	INT16 / 2 BYTE
-				buffer[8:12] -> correlation_id	INT32 / 4 BYTE
-			body:
-	*/
+	hC := 1
+	REQ := 1
 
 	for {
 		buffer := make([]byte, 1024)
 
-		if _, err := conn.Read(buffer); err != nil {
+		n, err := conn.Read(buffer)
+		if err != nil {
 			fmt.Println("conn Read error: ", err.Error())
 			return // if client disconnected, get an io.EOF err. then return to defer func
+		} else {
+			fmt.Println("get req:", REQ)
+			REQ++
 		}
 
-		go HandleRequest(conn, buffer)
+		fmt.Println("handle Connection Count: ", hC)
+		go HandleRequest(conn, buffer[:n])
+		hC++
 	}
 }

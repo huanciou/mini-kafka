@@ -7,8 +7,20 @@ import (
 )
 
 func HandleRequest(conn net.Conn, buffer []byte) {
+
+	fmt.Println("buffer leng: ", len(buffer))
+	fmt.Println("buffer content: ", buffer)
 	/*
-		The response order:
+		Request struct:
+			header:
+				buffer[0:4] -> message length / 4 BYTE
+				buffer[4:6] -> request_api_key	INT16 / 2 BYTE
+				buffer[6:8] -> request_api_version	INT16 / 2 BYTE
+				buffer[8:12] -> correlation_id	INT32 / 4 BYTE
+	*/
+
+	/*
+		Response struct:
 			header:
 				buffer[0:4] -> message length / 4 Byte
 				buffer[4:12] -> correlation_id / 4 Byte
@@ -20,9 +32,8 @@ func HandleRequest(conn net.Conn, buffer []byte) {
 					max_version -> Int_16 / 2 Byte
 	*/
 
-	fmt.Println(string(buffer))
+	fmt.Println("handling request here ")
 
-	leng := []byte{0, 0, 0, 19}   // 4 Bytes
 	correlationId := buffer[8:12] // 4 Bytes
 	var errorCode []byte          // 2 Bytes
 
@@ -35,37 +46,44 @@ func HandleRequest(conn net.Conn, buffer []byte) {
 		errorCode = []byte{0, 35}
 	}
 
-	resp := append(leng, correlationId...)
-	resp = append(resp, errorCode...)
+	apiKey := binary.BigEndian.Uint16(buffer[4:6])
+
+	var bodyResp []byte
+
+	switch int(apiKey) {
+	case 18: // APIVersions
+		bodyResp = APIVersions(apiKey)
+	default:
+		bodyResp = []byte{}
+	}
+
+	fmt.Println(len(bodyResp))
+
+	leng := []byte{0, 0, 0, byte(len(bodyResp) + 6)} // 4 Bytes
+
+	fmt.Println(leng)
+
+	HeaderResp := append(leng, correlationId...)
+	HeaderResp = append(HeaderResp, errorCode...)
+
+	fmt.Println("header", HeaderResp)
+
+	// if _, err := conn.Write(HeaderResp); err != nil {
+	// 	fmt.Println("Header Respond Error: ", err.Error())
+	// }
+
+	// if _, err := conn.Write(bodyResp); err != nil {
+	// 	fmt.Println("Body Respond Error: ", err.Error())
+	// }
+
+	resp := append(HeaderResp, bodyResp...)
 
 	if _, err := conn.Write(resp); err != nil {
-		fmt.Println("conn Write error: ", err.Error())
+		fmt.Println("Body Respond Error: ", err.Error())
 	}
 
-	numbersOfApiKeys := []byte{2}      // 1 Byte
-	apiKey := buffer[4:6]              // 2 Bytes
-	minVersion := []byte{0, 0}         // 2 Bytes
-	maxVersion := []byte{0, 4}         // 2 Bytes
-	tagFields := []byte{0}             // 1 Byte
-	throttleTime := []byte{0, 0, 0, 0} // 4 Bytes
+	fmt.Println(resp)
+	// [0 0 0 19 84 246 20 22 0 0 2 0 18 0 0 0 4 0 0 0 0 0 0 0]
 
-	/* 這邊 tester 要測試包含多個 Api key 版本, 需要 =2 */
-
-	// numbersOfApiKeys := []byte{2}      // 1 Byte
-	// apiKey := buffer[4:6]              // 2 Bytes
-	// minVersion := []byte{0, 0}         // 2 Bytes
-	// maxVersion := []byte{0, 4}         // 2 Bytes
-	// tagFields := []byte{0}             // 1 Byte
-	// throttleTime := []byte{0, 0, 0, 0} // 4 Bytes
-
-	bodyResp := append(numbersOfApiKeys, apiKey...)
-	bodyResp = append(bodyResp, minVersion...)
-	bodyResp = append(bodyResp, maxVersion...)
-	bodyResp = append(bodyResp, tagFields...)
-	bodyResp = append(bodyResp, throttleTime...)
-	bodyResp = append(bodyResp, tagFields...)
-
-	if _, err := conn.Write(bodyResp); err != nil {
-		fmt.Println("conn Write error: ", err.Error())
-	}
+	fmt.Println("req done")
 }
